@@ -1,42 +1,34 @@
 #pragma once
 
-#include "usb_controller.hpp"
+#include <libusb-1.0/libusb.h>
 #include <memory>
 #include <vector>
-#include <cstdint>
-
-struct DepthFrame {
-    int width;
-    int height;
-    std::vector<uint16_t> depth_data;
-};
+#include "usb_controller.hpp"
 
 class CameraDevice {
 public:
+    static constexpr int DEFAULT_WIDTH = 640;
+    static constexpr int DEFAULT_HEIGHT = 480;
+    static constexpr size_t DEPTH_FRAME_SIZE = DEFAULT_WIDTH * DEFAULT_HEIGHT * sizeof(uint16_t);
+
     CameraDevice();
     ~CameraDevice();
 
     bool initialize();
     bool start_streaming();
     bool stop_streaming();
-    bool get_depth_frame(DepthFrame& frame);
+    bool get_depth_frame(uint8_t* buffer, size_t buffer_size);
 
 private:
     bool send_init_sequence();
     bool configure_depth_stream();
 
     std::unique_ptr<USBController> usb_controller_;
+    libusb_device_handle* device_handle_;
     bool is_streaming_;
 
-    // Camera constants
-    static constexpr int DEFAULT_WIDTH = 640;
-    static constexpr int DEFAULT_HEIGHT = 480;
-
-    // Interface numbers (based on USB descriptor)
-    static constexpr int CONTROL_INTERFACE = 0;  // Class 14, SubClass 1
-    static constexpr int DEPTH_INTERFACE = 1;    // Class 14, SubClass 2
-
-    // Endpoint addresses (based on USB descriptor)
-    static constexpr uint8_t CONTROL_ENDPOINT_IN = 0x87;   // Interface 0, Endpoint 0
-    static constexpr uint8_t DEPTH_ENDPOINT_IN = 0x82;     // Interface 1, Endpoint 0
+    // Interface and endpoint numbers (will be set during initialization)
+    uint8_t DEPTH_INTERFACE;
+    uint8_t CONTROL_INTERFACE;
+    uint8_t DEPTH_ENDPOINT_IN;
 };

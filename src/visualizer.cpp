@@ -1,9 +1,8 @@
-#include "visualizer.hpp"
-#include <iostream>
-
 #define GL_SILENCE_DEPRECATION
 #define GLFW_INCLUDE_GLCOREARB
-#include <OpenGL/gl3.h>
+#include <GLFW/glfw3.h>
+#include <iostream>
+#include "visualizer.hpp"
 
 const char* Visualizer::vertex_shader_source = R"(
     #version 330 core
@@ -23,7 +22,8 @@ const char* Visualizer::fragment_shader_source = R"(
     uniform sampler2D depthTexture;
     void main() {
         float depth = texture(depthTexture, TexCoord).r;
-        vec3 color = vec3(depth);
+        // Apply a color mapping to make the depth visualization more clear
+        vec3 color = vec3(1.0 - depth);  // Invert depth for better visualization
         FragColor = vec4(color, 1.0);
     }
 )";
@@ -144,24 +144,19 @@ bool Visualizer::compile_shaders() {
     return true;
 }
 
-void Visualizer::render_frame(const DepthFrame& frame) {
+void Visualizer::render_frame(const uint8_t* depth_data) {
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(shader_program_);
 
-    update_texture(frame);
+    update_texture(depth_data);
 
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     glfwSwapBuffers(window_);
 }
 
-void Visualizer::update_texture(const DepthFrame& frame) {
-    std::vector<float> normalized_data(frame.depth_data.size());
-    for (size_t i = 0; i < frame.depth_data.size(); ++i) {
-        normalized_data[i] = static_cast<float>(frame.depth_data[i]) / 65535.0f;
-    }
-
+void Visualizer::update_texture(const uint8_t* depth_data) {
     glBindTexture(GL_TEXTURE_2D, texture_id_);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, frame.width, frame.height, 0, GL_RED, GL_FLOAT, normalized_data.data());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width_, height_, 0, GL_RED, GL_UNSIGNED_SHORT, depth_data);
 }
 
 bool Visualizer::should_close() {

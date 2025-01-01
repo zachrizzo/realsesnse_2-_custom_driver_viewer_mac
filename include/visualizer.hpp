@@ -1,8 +1,8 @@
 #pragma once
 
+#define GL_SILENCE_DEPRECATION
+#define GLFW_INCLUDE_GLCOREARB
 #include <GLFW/glfw3.h>
-#include "camera_device.hpp"
-#include <memory>
 
 class Visualizer {
 public:
@@ -10,23 +10,21 @@ public:
     ~Visualizer();
 
     bool initialize();
-    void render_frame(const DepthFrame& frame);
+    void render_frame(const uint8_t* depth_data);
     bool should_close();
     void process_events();
 
 private:
+    bool setup_gl();
+    bool compile_shaders();
+    void update_texture(const uint8_t* depth_data);
+
     GLFWwindow* window_;
     int width_;
     int height_;
     GLuint texture_id_;
     GLuint shader_program_;
 
-    bool create_window();
-    bool setup_gl();
-    bool compile_shaders();
-    void update_texture(const DepthFrame& frame);
-
-    // Shader sources
     static const char* vertex_shader_source;
     static const char* fragment_shader_source;
 };
